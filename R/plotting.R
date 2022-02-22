@@ -12,9 +12,8 @@ locus_summary <- readr::read_csv(here("data", "locus_summary.csv"))
 
 melted <- data |> tidyr::pivot_longer(!Locus, names_to = "species", values_to = "present")
 
-melted |> dplyr::summarise()
-
-ggplot(melted, aes(x = Locus, y = species, fill = present)) + 
+melted |> 
+  ggplot(aes(x = Locus, y = species, fill = present)) + 
   geom_tile(aes(size = 2)) +
   scale_fill_manual(values = c("white", "black")) +
   theme_bw() +
