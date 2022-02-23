@@ -8,6 +8,7 @@ library(ggplot2)
 library(here)
 library(tidyr)
 library(dplyr)
+library(stringr)
 
 source(here("R", "utils.R"))
 ```
@@ -15,7 +16,7 @@ source(here("R", "utils.R"))
 ## Load files
 
 ```{r}
-data <- readr::read_csv(here("data", "id_map.csv"))
+id_map <- readr::read_csv(here("data", "id_map.csv"))
 
 taxon_summary <- readr::read_csv(here("data", "taxon_summary.csv"))
 
@@ -25,29 +26,35 @@ locus_summary <- readr::read_csv(here("data", "locus_summary.csv"))
 ## Convert to pivot longer table
 
 ```{r}
-melted <- data |> tidyr::pivot_longer(!Locus, names_to = "species", values_to = "present")
+melted <- id_map |> 
+  dplyr::mutate_at("Alignments", stringr::str_remove_all, "uce-") |>
+  dplyr::mutate_at("Alignments", readr::parse_number) |>
+  tidyr::pivot_longer(!Alignments, names_to = "species", values_to = "present") |>
+  dplyr::mutate_at("species", stringr::str_replace_all, "_", " ") 
 ```
 
 ## Plot present/absent data
 
 ```{r}
 melted |> 
-  ggplot(aes(x = Locus, y = species, fill = present)) + 
-  geom_tile(aes(size = .8)) +
-  scale_fill_manual(values = c("white", "black")) +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  theme(legend.position = "none")
+  ggplot(aes(x = Alignments, y = species, fill = present)) + 
+    geom_tile(aes(size = .8)) +
+    scale_fill_manual(values = c("white", "black")) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme(axis.text.y = element_text(size = 8)) +
+    theme(legend.position = "none") +
+    labs(x = "UCE Locus", y = "Taxa")
 
-save_plot("figures", "present_absent.png")
+save_plot("figures", "present_absent.png", .width = 4000, .height = 3000, .unit = "px")
 ```
 
 ## Plot sampling
 
 ```{r}
 taxon_summary |>
-  dplyr::mutate(site_mb = site_counts / 1e6) |>
-  ggplot(aes(x = locus_counts, y = site_mb, color = locus_counts)) + 
+  dplyr::mutate(site_counts_mb = site_counts / 1e6) |>
+  ggplot(aes(x = locus_counts, y = site_counts_mb, color = locus_counts)) + 
   geom_point(size = 2) +
   theme_classic() +
   scale_color_gradient(low="blue", high="red") +
